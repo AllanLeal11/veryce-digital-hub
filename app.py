@@ -6,8 +6,7 @@ import zipfile
 import re
 from datetime import datetime
 from dotenv import load_dotenv
-from langchain_groq import ChatGroq
-from langchain.prompts import ChatPromptTemplate
+# langchain eliminado — usamos Groq client directo para evitar errores con {} en CSS/JS
 
 load_dotenv()
 
@@ -85,18 +84,19 @@ def detectar_agente_keywords(mensaje: str) -> str:
 def detectar_agente_llm(mensaje: str) -> str:
     """Llama al modelo 8B SOLO si keywords no detectaron nada. Costo mínimo."""
     try:
-        llm_router = ChatGroq(
+        from groq import Groq
+        client = Groq(api_key=GROQ_API_KEY)
+        ids = [k for k in AGENTES if k != "coordinador"]
+        resp = client.chat.completions.create(
             model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": f"Clasifica en UNA de: {', '.join(ids)}, coordinador. Responde solo la palabra."},
+                {"role": "user", "content": mensaje}
+            ],
             temperature=0,
             max_tokens=10,
-            api_key=GROQ_API_KEY
         )
-        ids = [k for k in AGENTES if k != "coordinador"]
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", f"Clasifica en UNA de: {', '.join(ids)}, coordinador. Solo la palabra."),
-            ("human", mensaje)
-        ])
-        r = (prompt | llm_router).invoke({}).content.strip().lower()
+        r = resp.choices[0].message.content.strip().lower()
         return r if r in AGENTES else "coordinador"
     except:
         return "coordinador"
@@ -118,17 +118,19 @@ def comprimir_historial(historial: list) -> list:
 # ─── LLAMADA PRINCIPAL (70B) ──────────────────────────────────────────────────
 def llamar_groq(sistema: str, historial: list, mensaje: str) -> str:
     try:
-        llm = ChatGroq(
-            model="llama-3.3-70b-versatile",
-            temperature=0.6,
-            max_tokens=1500,
-            api_key=GROQ_API_KEY
-        )
-        msgs = [("system", sistema)]
+        from groq import Groq
+        client = Groq(api_key=GROQ_API_KEY)
+        msgs = [{"role": "system", "content": sistema}]
         for h in comprimir_historial(historial):
-            msgs.append((h["role"], h["content"]))
-        msgs.append(("human", mensaje))
-        return (ChatPromptTemplate.from_messages(msgs) | llm).invoke({}).content
+            msgs.append({"role": h["role"], "content": h["content"]})
+        msgs.append({"role": "user", "content": mensaje})
+        resp = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=msgs,
+            temperature=0.6,
+            max_tokens=3000,
+        )
+        return resp.choices[0].message.content
     except Exception as e:
         return f"❌ Error: {e}"
 
