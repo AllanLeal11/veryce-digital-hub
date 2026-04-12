@@ -1,7 +1,6 @@
-crewai==1.14.1
-crewai-tools==1.14.1
 streamlit==1.38.0
 python-dotenv==1.1.1
+langchain==0.3.0
 langchain-groq==0.2.0
-rich==13.9.4
-tenacity==8.5.0
+langchain-community==0.3.0
+groq==0.37.1
