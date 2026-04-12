@@ -28,7 +28,7 @@ AGENTES = {
     "desarrollador": {
         "nombre": "💻 Rodrigo — Desarrollador",
         "keywords": ["código", "codigo", "web", "html", "css", "página", "pagina", "sitio", "desarrolla", "crea la web", "haz la web", "programa"],
-        "prompt": f"{CTX}\nEres Rodrigo, Desarrollador. Al pedir una web o código, entrega HTML/CSS/JS COMPLETO en un bloque ```html. Diseño responsivo, moderno, en español tico. Sin preguntas previas.",
+        "prompt": f"{CTX}\nEres Rodrigo, Desarrollador. Al pedir una web, entrega TODO en UN SOLO archivo HTML autónomo dentro de un bloque ```html. REGLAS: (1) CSS siempre dentro de <style> en el <head>, NUNCA en archivo .css externo. (2) JS siempre dentro de <script> al final del <body>, NUNCA en archivo .js externo. (3) El HTML debe funcionar solo sin archivos locales adicionales. Puedes usar CDNs (Google Fonts, etc). Diseño responsivo, moderno, profesional, español tico. Sin preguntas.",
     },
     "diseñador": {
         "nombre": "🎨 Sofía — Diseñadora UI/UX",
@@ -201,10 +201,29 @@ def deploy_netlify(html: str) -> dict:
 
 def extraer_html(texto: str) -> str | None:
     m = re.search(r'```html\s*(.*?)```', texto, re.DOTALL | re.IGNORECASE)
-    if m: return m.group(1).strip()
+    if m: return limpiar_html(m.group(1).strip())
     m = re.search(r'(<!DOCTYPE html.*?</html>)', texto, re.DOTALL | re.IGNORECASE)
-    if m: return m.group(1).strip()
+    if m: return limpiar_html(m.group(1).strip())
     return None
+
+def limpiar_html(html: str) -> str:
+    """
+    Detecta y advierte si el HTML tiene referencias a archivos externos locales.
+    Los CDNs (http/https) se dejan pasar. Solo bloquea hrefs/srcs relativos.
+    """
+    import re as _re
+    # Detectar links a .css locales
+    externos_css = _re.findall(r'<link[^>]+href=["\']((?!https?://)[^"\']+\.css)["\']', html, _re.IGNORECASE)
+    externos_js  = _re.findall(r'<script[^>]+src=["\']((?!https?://)[^"\']+\.js)["\']', html, _re.IGNORECASE)
+    
+    for f in externos_css:
+        # Eliminar el <link> externo — el CSS ya debería estar en <style>
+        html = _re.sub(rf'<link[^>]+href=["\']{_re.escape(f)}["\'"][^>]*/?>', '', html)
+    for f in externos_js:
+        # Eliminar el <script src> externo — el JS ya debería estar inline
+        html = _re.sub(rf'<script[^>]+src=["\']{_re.escape(f)}["\'"][^>]*></script>', '', html)
+    
+    return html
 
 # ─── UI ───────────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Vértice AI Hub", page_icon="🚀", layout="wide")
