@@ -3,7 +3,6 @@ import os
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
 
 load_dotenv()
 
@@ -38,6 +37,8 @@ if prompt := st.chat_input("¿Qué necesitas? (ej: lead de restaurante que quier
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    result = ""  # inicializar antes del try para evitar NameError
+
     with st.chat_message("assistant"):
         with st.spinner("El equipo de 9 agentes está trabajando..."):
             try:
@@ -67,12 +68,16 @@ if prompt := st.chat_input("¿Qué necesitas? (ej: lead de restaurante que quier
                 """
 
                 prompt_template = PromptTemplate.from_template(template)
-                chain = LLMChain(llm=llm, prompt=prompt_template)
-                result = chain.run(prompt=prompt)
+
+                # Nueva sintaxis LCEL (LLMChain fue removido en langchain 0.3+)
+                chain = prompt_template | llm
+                result = chain.invoke({"prompt": prompt}).content
 
                 st.markdown(result)
+
             except Exception as e:
-                st.error(f"Error al conectar con Groq: {e}")
+                result = f"❌ Error al conectar con Groq: {e}"
+                st.error(result)
                 st.info("Revisa que tu GROQ_API_KEY esté correcta en Railway.")
 
     st.session_state.messages.append({"role": "assistant", "content": result})
