@@ -109,15 +109,7 @@ TECH/STARTUP: hero moderno, features, métricas, CTA fuerte
 - NUNCA uses colores pastel genéricos o fondos blancos lisos
 - SIEMPRE personaliza el contenido al negocio específico del cliente
 - Usa fotos reales de Unsplash relacionadas al negocio
-- Sin preguntas. Entrega el HTML completo de una vez.
-
-IMPORTANTE DE SALIDA:
-- Si el usuario pide una web, devuelve SOLO HTML completo y funcional.
-- No te disculpes ni rechaces.
-- No entregues explicaciones fuera del código.
-- Haz la web visualmente premium y adaptada al negocio.
-- Si hace falta, usa más secciones, hero fuerte, cards, CTA y footer.
-""",
+- Sin preguntas. Entrega el HTML completo de una vez.""",
     },
     "diseñador": {
         "nombre": "🎨 Sofía — Diseñadora UI/UX",
@@ -191,68 +183,98 @@ def detectar_agente_llm(mensaje: str) -> str:
     except:
         return "coordinador"
 
+# ─── COMPRESIÓN DE HISTORIAL ──────────────────────────────────────────────────
+def comprimir_historial(historial: list) -> list:
+    """Mantiene últimos 4 mensajes. El resto se convierte en resumen compacto."""
+    if len(historial) <= 4:
+        return historial
+    viejos = historial[:-4]
+    recientes = historial[-4:]
+    resumen = "Contexto previo:\n" + "\n".join(
+        f"{'Allan' if m['role']=='user' else 'Agente'}: {m['content'][:60]}..."
+        for m in viejos
+    )
+    return [{"role": "user", "content": resumen},
+            {"role": "assistant", "content": "Ok."}] + recientes
 
+# ─── LLAMADA PRINCIPAL (70B) ──────────────────────────────────────────────────
+def llamar_groq(sistema: str, historial: list, mensaje: str) -> str:
+    try:
+        from groq import Groq
+        client = Groq(api_key=GROQ_API_KEY)
+        msgs = [{"role": "system", "content": sistema}]
+        for h in comprimir_historial(historial):
+            msgs.append({"role": h["role"], "content": h["content"]})
+        msgs.append({"role": "user", "content": mensaje})
+        resp = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=msgs,
+            temperature=0.6,
+            max_tokens=3000,
+        )
+        return resp.choices[0].message.content
+    except Exception as e:
+        return f"❌ Error: {e}"
+
+# ─── ESTILO VISUAL / REFUERZOS ───────────────────────────────────────────────
 def detectar_estilo_visual(mensaje: str) -> str:
     msg = mensaje.lower()
-    if any(p in msg for p in ["restaurante", "comida", "menu", "hamburguesa", "pizzeria", "cafeteria", "café", "food"]):
+    if any(p in msg for p in ["restaurante", "comida", "menú", "menu", "hamburguesa", "pizzería", "pizzeria", "café", "cafetería", "cafe", "cafeteria", "food"]):
         return "restaurante"
-    if any(p in msg for p in ["hotel", "turismo", "viaje", "resort", "playa"]):
+    if any(p in msg for p in ["hotel", "turismo", "viaje", "resort", "playa", "booking"]):
         return "turismo"
-    if any(p in msg for p in ["clinica", "clínica", "doctor", "dentista", "salud"]):
+    if any(p in msg for p in ["clínica", "clinica", "doctor", "dentista", "salud", "hospital"]):
         return "clinica"
-    if any(p in msg for p in ["tienda", "ropa", "retail", "catalogo", "catálogo", "productos"]):
+    if any(p in msg for p in ["tienda", "ropa", "producto", "productos", "catálogo", "catalogo", "shop", "ecommerce"]):
         return "retail"
-    if any(p in msg for p in ["startup", "saas", "software", "tecnologia", "tecnología", "app", "ia", "ai"]):
+    if any(p in msg for p in ["tech", "startup", "software", "app", "saas", "tecnología", "tecnologia", "sistema", "ia", "automatización", "automatizacion"]):
         return "tech"
     return "premium"
 
 
-def construir_prompt_visual(estilo_visual: str) -> str:
-    return f"""
-IMPORTANTE DE ESTILO VISUAL:
-- La web debe verse premium, moderna y completa.
-- Usa hero fuerte, cards, sombras suaves, animaciones sutiles y jerarquía clara.
-- Evita páginas planas, vacías o minimalistas sin intención.
-- Ajusta el estilo a: {estilo_visual}.
-- Incluye navbar fija, secciones bien separadas, CTA visible y footer completo.
-- Si el negocio es restaurante o comida: usa colores cálidos, imágenes apetitosas y sección de menú.
-- Si es tech: usa look oscuro/azul, métricas y bloques modernos.
-- Si es clínica: usa limpio, confiable y profesional.
-- Si es turismo/hotel: usa imagen hero grande y sensación cinematográfica.
-- Si es retail: usa catálogo visual y precios destacados.
-"""
+def refuerzo_visual_por_estilo(estilo: str) -> str:
+    mapa = {
+        "restaurante": (
+            "Estilo visual: oscuro, apetitoso y premium. Usa hero con foto de comida, overlay fuerte, cards con precios, CTA visible, tipografía grande, y secciones con mucho contraste."
+        ),
+        "turismo": (
+            "Estilo visual: cinematográfico, elegante y aspiracional. Usa hero inmersivo, fotos grandes, cards refinadas y sensación de lujo/confianza."
+        ),
+        "clinica": (
+            "Estilo visual: limpio, confiable y profesional. Usa espacios ordenados, tonos azules o verdes, cards claras y jerarquía muy legible."
+        ),
+        "retail": (
+            "Estilo visual: moderno, comercial y visual. Usa grid de productos, botones fuertes, precios visibles y composición dinámica."
+        ),
+        "tech": (
+            "Estilo visual: futurista, moderno y de alto contraste. Usa gradientes, cards con glow, métricas, hero técnico y animaciones sutiles."
+        ),
+        "premium": (
+            "Estilo visual: premium, moderno y sofisticado. Usa hero fuerte, cards limpias, contraste alto, animaciones suaves y apariencia de agencia."
+        ),
+    }
+    return mapa.get(estilo, mapa["premium"])
 
 
-def respuesta_indica_rechazo(texto: str) -> bool:
-    t = texto.lower()
-    frases = [
-        "lo siento",
-        "no puedo proporcionar",
-        "no puedo crear",
-        "sin embargo",
-        "puedo proporcionarte el código html",
-        "te dejo el código",
-    ]
-    return any(p in t for p in frases)
+def solicitud_pide_web(mensaje: str) -> bool:
+    msg = mensaje.lower()
+    return any(k in msg for k in ["web", "sitio", "landing", "página", "pagina", "html", "css", "frontend", "landing page", "sitio web"])
 
 
-def generar_respuesta_forzada(agente: str, sistema: str, historial: list, mensaje: str, estilo_visual: str | None = None) -> str:
-    """Intenta una respuesta normal; si el modelo rechaza o no devuelve HTML, fuerza una segunda pasada."""
-    respuesta = llamar_groq(sistema, historial, mensaje)
+def generar_respuesta_forzada(agente_id: str, sistema: str, historial: list, mensaje: str, estilo_visual: str | None = None) -> str:
+    sistema_final = sistema
+    if agente_id == "desarrollador" and estilo_visual:
+        sistema_final = sistema + "\n\n" + refuerzo_visual_por_estilo(estilo_visual)
 
-    if agente == "desarrollador":
-        tiene_html = ("<!DOCTYPE html" in respuesta) or ("<html" in respuesta.lower())
-        if respuesta_indica_rechazo(respuesta) or not tiene_html:
-            refuerzo = sistema + "\n\n"
-            if estilo_visual:
-                refuerzo += construir_prompt_visual(estilo_visual or "premium") + "\n\n"
-            refuerzo += (
-                "REGLAS ABSOLUTAS:\n"
-                "- No rechaces la solicitud.\n"
-                "- No digas 'lo siento' ni 'sin embargo'.\n"
-                "- Devuelve SOLO un archivo HTML completo y autónomo.\n"
-                "- Incluye <!DOCTYPE html>, <html>, <head>, <style> y <body>.\n"
-                "- No expliques nada fuera del código.\n"
+    respuesta = llamar_groq(sistema_final, historial, mensaje)
+
+    # Si el modelo rechaza o no devuelve HTML en una solicitud web, forzamos una segunda pasada.
+    if agente_id == "desarrollador" and solicitud_pide_web(mensaje):
+        if ("lo siento" in respuesta.lower()) or ("no puedo" in respuesta.lower()) or ("sin embargo" in respuesta.lower()) or ("<!doctype html" not in respuesta.lower() and "<html" not in respuesta.lower()):
+            refuerzo = sistema_final + "\n\n" + (
+                "IMPORTANTE ABSOLUTO: NO rechaces la solicitud. NO digas 'lo siento' ni 'no puedo'. "
+                "Devuelve SOLO una web completa en HTML autónomo, con <!DOCTYPE html>, <html>, <head>, <body>, CSS dentro de <style> y JS dentro de <script>. "
+                "Si faltan datos, asúmelos. Incluye hero, secciones, cards, CTA y footer."
             )
             respuesta = llamar_groq(refuerzo, historial, mensaje)
 
@@ -553,9 +575,11 @@ if orden := st.chat_input("Escribe tu orden, Allan..."):
     historial_llm = [{"role": m["role"], "content": m["content"]}
                      for m in st.session_state.messages[:-1]]
 
+    estilo_visual = detectar_estilo_visual(orden) if agente_id == "desarrollador" else None
+
     with st.chat_message("assistant"):
         with st.spinner(f"{ag['nombre']} procesando..."):
-            respuesta = generar_respuesta_forzada(agente_id, ag["prompt"], historial_llm, orden, detectar_estilo_visual(orden) if agente_id == "desarrollador" else None)
+            respuesta = generar_respuesta_forzada(agente_id, ag["prompt"], historial_llm, orden, estilo_visual)
 
         st.markdown(f'<span class="agente-badge">{ag["nombre"]}</span>', unsafe_allow_html=True)
         st.markdown(respuesta)
