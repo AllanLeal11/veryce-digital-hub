@@ -109,6 +109,7 @@ TECH/STARTUP: hero moderno, features, métricas, CTA fuerte
 - NUNCA uses colores pastel genéricos o fondos blancos lisos
 - SIEMPRE personaliza el contenido al negocio específico del cliente
 - Usa fotos reales de Unsplash relacionadas al negocio
+- Si el usuario pide un estilo específico (lujoso, minimalista, oscuro, tropical, industrial, moderno, elegante, etc.), adáptalo sin romper la estructura premium.
 - Sin preguntas. Entrega el HTML completo de una vez.""",
     },
     "diseñador": {
@@ -375,11 +376,136 @@ def deploy_netlify(html: str) -> dict:
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
+
+PREMIUM_CSS_INJECTION = """
+<style id="vertex-premium-fallback">
+:root{
+  --vd-bg:#0d1b2a;
+  --vd-bg-2:#0a1628;
+  --vd-surface:#111d2e;
+  --vd-surface-2:#16253a;
+  --vd-accent:#f0a500;
+  --vd-accent-2:#ffc837;
+  --vd-text:#f8f9fa;
+  --vd-muted:#aab4c4;
+  --vd-border:rgba(255,255,255,.08);
+  --vd-shadow:0 24px 60px rgba(0,0,0,.35);
+}
+html, body{
+  background: radial-gradient(circle at top, #13233d 0%, var(--vd-bg) 42%, #08111d 100%) !important;
+  color: var(--vd-text) !important;
+  font-family: Inter, Space Grotesk, system-ui, sans-serif !important;
+  scroll-behavior:smooth;
+}
+body{
+  margin:0;
+  overflow-x:hidden;
+}
+img{max-width:100%;display:block;}
+a{transition:all .25s ease;}
+nav, .navbar{
+  background: rgba(13,27,42,.82) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom:1px solid var(--vd-border);
+}
+section, main, header, footer{
+  position:relative;
+}
+section{
+  padding: clamp(4rem, 7vw, 7rem) 0 !important;
+}
+h1,h2,h3,h4,h5,h6{
+  letter-spacing:-0.04em;
+  line-height:1.05;
+}
+p, li, span{
+  color: inherit;
+}
+.hero, .banner, .landing-hero, .section-hero{
+  min-height: 92vh;
+  display:flex;
+  align-items:center;
+  position:relative;
+  overflow:hidden;
+  background: linear-gradient(135deg, rgba(13,27,42,.92), rgba(10,22,40,.86));
+}
+.hero::before, .banner::before, .landing-hero::before, .section-hero::before{
+  content:'';
+  position:absolute; inset:0;
+  background: linear-gradient(135deg, rgba(8,14,23,.2), rgba(8,14,23,.65));
+  pointer-events:none;
+}
+.hero *, .banner *, .landing-hero *, .section-hero *{
+  position:relative;
+  z-index:1;
+}
+.btn, button, .btn-gold, .cta, a[class*="btn"]{
+  border-radius: 14px !important;
+  transition: transform .25s ease, box-shadow .25s ease, opacity .25s ease, background .25s ease !important;
+}
+.btn:hover, button:hover, .btn-gold:hover, .cta:hover, a[class*="btn"]:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px rgba(240,165,0,.20);
+}
+.card, .service-card, .feature-card, .menu-card, .contact-card, .testi-card, .mockup-window, .proceso-visual{
+  background: linear-gradient(180deg, rgba(17,29,46,.92), rgba(12,20,34,.92)) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  box-shadow: var(--vd-shadow) !important;
+  border-radius: 20px !important;
+}
+.card:hover, .service-card:hover, .feature-card:hover, .menu-card:hover, .testi-card:hover{
+  transform: translateY(-8px) !important;
+}
+input, textarea, select, .form-control, .form-select{
+  background: rgba(255,255,255,.05) !important;
+  color: var(--vd-text) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  border-radius: 14px !important;
+}
+input::placeholder, textarea::placeholder{
+  color: var(--vd-muted) !important;
+}
+.container{
+  position:relative;
+}
+.container, .container-fluid{
+  padding-left: clamp(1rem, 3vw, 2rem);
+  padding-right: clamp(1rem, 3vw, 2rem);
+}
+.fade-up{
+  opacity:0;
+  transform: translateY(22px);
+  transition: opacity .6s ease, transform .6s ease;
+}
+.fade-up.visible{
+  opacity:1;
+  transform:none;
+}
+.whatsapp-float{
+  z-index:9999 !important;
+}
+</style>
+"""
+
+def mejorar_html(html: str) -> str:
+    html = limpiar_html(html)
+
+    if "<head" not in html.lower():
+        html = html.replace("<html", "<html><head>" + PREMIUM_CSS_INJECTION + "</head>", 1)
+    elif "vertex-premium-fallback" not in html.lower():
+        html = re.sub(r"</head>", PREMIUM_CSS_INJECTION + "</head>", html, count=1, flags=re.IGNORECASE)
+
+    if re.search(r"<body(?![^>]*style=)", html, re.IGNORECASE):
+        html = re.sub(r"<body(?![^>]*style=)", '<body style="background:#0d1b2a;color:#f8f9fa;"', html, count=1, flags=re.IGNORECASE)
+
+    return html
+
 def extraer_html(texto: str) -> str | None:
     m = re.search(r'```html\s*(.*?)```', texto, re.DOTALL | re.IGNORECASE)
-    if m: return limpiar_html(m.group(1).strip())
+    if m: return mejorar_html(m.group(1).strip())
     m = re.search(r'(<!DOCTYPE html.*?</html>)', texto, re.DOTALL | re.IGNORECASE)
-    if m: return limpiar_html(m.group(1).strip())
+    if m: return mejorar_html(m.group(1).strip())
     return None
 
 def limpiar_html(html: str) -> str:
@@ -513,7 +639,8 @@ if orden := st.chat_input("Escribe tu orden, Allan..."):
 
     with st.chat_message("assistant"):
         with st.spinner(f"{ag['nombre']} procesando..."):
-            respuesta = llamar_groq(ag["prompt"], historial_llm, orden)
+            estilo_visual = detectar_estilo_visual(orden)
+        respuesta = llamar_groq(ag["prompt"], historial_llm, orden, estilo_visual)
 
         st.markdown(f'<span class="agente-badge">{ag["nombre"]}</span>', unsafe_allow_html=True)
         st.markdown(respuesta)
