@@ -27,7 +27,30 @@ AGENTES = {
     "desarrollador": {
         "nombre": "💻 Rodrigo — Desarrollador",
         "keywords": ["código", "codigo", "web", "html", "css", "página", "pagina", "sitio", "desarrolla", "crea la web", "haz la web", "programa"],
-        "prompt": f"{CTX}\nEres Rodrigo, Desarrollador. Al pedir una web, entrega TODO en UN SOLO archivo HTML autónomo dentro de un bloque ```html. REGLAS: (1) CSS siempre dentro de <style> en el <head>, NUNCA en archivo .css externo. (2) JS siempre dentro de <script> al final del <body>, NUNCA en archivo .js externo. (3) El HTML debe funcionar solo sin archivos locales adicionales. Puedes usar CDNs (Google Fonts, etc). Diseño responsivo, moderno, profesional, español tico. Sin preguntas.",
+        "prompt": f"""{CTX}
+Eres Rodrigo, Desarrollador Senior especializado en webs de alto impacto visual.
+Al pedir una web, entrega TODO en UN SOLO bloque ```html autónomo.
+
+REGLAS TÉCNICAS OBLIGATORIAS:
+- CSS SIEMPRE dentro de <style> en el <head>. NUNCA href a .css externo.
+- JS SIEMPRE dentro de <script> al final del <body>. NUNCA src a .js externo.
+- Puedes usar CDNs: Bootstrap 5, Font Awesome 6, Google Fonts.
+
+REGLAS DE DISEÑO OBLIGATORIAS (aplica SIEMPRE):
+- Fondo oscuro: #0d1b2a o similar. Nunca fondo blanco genérico.
+- Navbar fija con efecto blur al hacer scroll.
+- Hero con gradiente animado, texto grande impactante y CTA dorado.
+- Paleta: azul marino + dorado (#f0a500) + blanco. Variables CSS.
+- Tarjetas con hover effect (transform + sombra).
+- Animaciones fade-in al hacer scroll con IntersectionObserver.
+- Botón flotante de WhatsApp con efecto pulse.
+- Sección de servicios con íconos Font Awesome.
+- Footer completo con links y redes sociales.
+- 100% responsivo mobile-first.
+- Fuentes: Google Fonts Syne (títulos) + Space Grotesk (cuerpo).
+
+NUNCA hagas webs planas, sin animaciones o con mucho espacio vacío.
+Sin preguntas. Entrega el HTML completo de una vez.""",
     },
     "diseñador": {
         "nombre": "🎨 Sofía — Diseñadora UI/UX",
@@ -227,6 +250,42 @@ def limpiar_html(html: str) -> str:
     
     return html
 
+# ─── PREVIEW HTML ─────────────────────────────────────────────────────────────
+
+def mostrar_preview_html(html: str, ts: str):
+    """Muestra preview inline del HTML + botón de descarga. Sin deploy automático."""
+    import base64
+
+    # Botón de descarga
+    st.download_button(
+        label="📥 Descargar HTML",
+        data=html,
+        file_name=f"demo_vertice_{ts}.html",
+        mime="text/html",
+        key=f"dl_{ts}"
+    )
+
+    # Preview inline con iframe usando data URI
+    html_b64 = base64.b64encode(html.encode()).decode()
+    iframe_code = f"""
+    <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;overflow:hidden;margin-top:0.5rem;">
+        <div style="background:#1a1a2e;padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.08);">
+            <span style="width:10px;height:10px;border-radius:50%;background:#ff5f57;display:inline-block"></span>
+            <span style="width:10px;height:10px;border-radius:50%;background:#febc2e;display:inline-block"></span>
+            <span style="width:10px;height:10px;border-radius:50%;background:#28c840;display:inline-block"></span>
+            <span style="color:rgba(255,255,255,0.4);font-size:11px;margin-left:8px;font-family:monospace;">preview — demo del cliente</span>
+        </div>
+        <iframe
+            src="data:text/html;base64,{html_b64}"
+            style="width:100%;height:520px;border:none;display:block;background:#fff;"
+            sandbox="allow-scripts allow-same-origin">
+        </iframe>
+    </div>
+    """
+    st.markdown(iframe_code, unsafe_allow_html=True)
+    st.caption("👆 Revisá la demo. Descargá el HTML y enviásela al cliente cuando estés listo.")
+
+
 # ─── UI ───────────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Vértice AI Hub", page_icon="🚀", layout="wide")
 st.markdown("""<style>
@@ -283,14 +342,7 @@ for msg in st.session_state.messages:
                     st.download_button("📄 PDF", pdf, f"propuesta_{ts}.pdf",
                                        "application/pdf", key=f"pdf_{ts}")
             if msg.get("html_content"):
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.download_button("📥 HTML", msg["html_content"], "index.html",
-                                       "text/html", key=f"html_{ts}")
-                with c2:
-                    if st.button("🚀 Deploy", key=f"dep_{ts}"):
-                        r = deploy_netlify(msg["html_content"])
-                        st.success(f"✅ {r['url']}") if r["ok"] else st.error(r["error"])
+                mostrar_preview_html(msg["html_content"], ts)
 
 # Input
 if orden := st.chat_input("Escribe tu orden, Allan..."):
@@ -322,15 +374,7 @@ if orden := st.chat_input("Escribe tu orden, Allan..."):
         html = extraer_html(respuesta)
         if html:
             msg_data["html_content"] = html
-            c1, c2 = st.columns(2)
-            with c1:
-                st.download_button("📥 HTML", html, "index.html", "text/html",
-                                   key=f"html_new_{ts}")
-            with c2:
-                if st.button("🚀 Deploy Netlify", key=f"dep_new_{ts}"):
-                    with st.spinner("Desplegando..."):
-                        r = deploy_netlify(html)
-                    st.success(f"✅ [{r['url']}]({r['url']})") if r["ok"] else st.error(r["error"])
+            mostrar_preview_html(html, ts)
 
         if any(p in orden.lower() for p in ["propuesta","cotiz","presupuesto","contrato","oferta"]):
             msg_data["pdf_content"] = respuesta
