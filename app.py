@@ -109,7 +109,15 @@ TECH/STARTUP: hero moderno, features, métricas, CTA fuerte
 - NUNCA uses colores pastel genéricos o fondos blancos lisos
 - SIEMPRE personaliza el contenido al negocio específico del cliente
 - Usa fotos reales de Unsplash relacionadas al negocio
-- Sin preguntas. Entrega el HTML completo de una vez.""",
+- Sin preguntas. Entrega el HTML completo de una vez.
+
+IMPORTANTE DE SALIDA:
+- Si el usuario pide una web, devuelve SOLO HTML completo y funcional.
+- No te disculpes ni rechaces.
+- No entregues explicaciones fuera del código.
+- Haz la web visualmente premium y adaptada al negocio.
+- Si hace falta, usa más secciones, hero fuerte, cards, CTA y footer.
+""",
     },
     "diseñador": {
         "nombre": "🎨 Sofía — Diseñadora UI/UX",
@@ -183,116 +191,72 @@ def detectar_agente_llm(mensaje: str) -> str:
     except:
         return "coordinador"
 
-# ─── ESTILO VISUAL ───────────────────────────────────────────────────────────
+
 def detectar_estilo_visual(mensaje: str) -> str:
     msg = mensaje.lower()
-
-    if any(k in msg for k in ["restaurante", "comida", "menu", "menú", "hamburguesa", "pizzeria", "pizzería", "cafeteria", "cafetería", "soda", "tacos", "fast food"]):
+    if any(p in msg for p in ["restaurante", "comida", "menu", "hamburguesa", "pizzeria", "cafeteria", "café", "food"]):
         return "restaurante"
-
-    if any(k in msg for k in ["hotel", "turismo", "viaje", "resort", "playa", "tour", "turístico", "turistica", "turística"]):
+    if any(p in msg for p in ["hotel", "turismo", "viaje", "resort", "playa"]):
         return "turismo"
-
-    if any(k in msg for k in ["clinica", "clínica", "doctor", "médico", "medico", "dentista", "salud", "fisioterapia", "farmacia"]):
+    if any(p in msg for p in ["clinica", "clínica", "doctor", "dentista", "salud"]):
         return "clinica"
-
-    if any(k in msg for k in ["tienda", "ropa", "catalogo", "catálogo", "producto", "ecommerce", "shop", "retail", "ventas"]):
+    if any(p in msg for p in ["tienda", "ropa", "retail", "catalogo", "catálogo", "productos"]):
         return "retail"
-
-    if any(k in msg for k in ["software", "app", "tech", "startup", "sistema", "saas", "tecnologia", "tecnología", "automatizacion", "automatización"]):
+    if any(p in msg for p in ["startup", "saas", "software", "tecnologia", "tecnología", "app", "ia", "ai"]):
         return "tech"
-
     return "premium"
 
-def instrucciones_estilo_visual(estilo: str) -> str:
-    estilos = {
-        "restaurante": "Estilo visual restaurante/comida:\n- Fondo oscuro elegante con acentos cálidos (ámbar, dorado, rojo profundo).\n- Hero con imagen grande de comida, overlay oscuro y CTA fuerte.\n- Sección menú con cards de platos, precios y hover lift.\n- Sección promociones destacada con badges.\n- Botón de reservas/WhatsApp visible.\n- Sensación: hambre, antojo, rapidez, confianza.",
-        "turismo": "Estilo visual turismo/hotel:\n- Fondo cinematográfico con azules profundos y blancos limpios.\n- Hero con foto grande de playa, hotel o paisaje.\n- Tarjetas de habitaciones/servicios con sombras suaves.\n- Sección de beneficios, ubicación y reservas.\n- Sensación: descanso, lujo, confianza y escapada.",
-        "clinica": "Estilo visual clínica/profesional:\n- Fondo limpio pero no vacío, con azules suaves, blanco y verde sanitario.\n- Hero confiable, muy ordenado, con sensación médica premium.\n- Sección de servicios en grid con íconos claros.\n- Testimonios y horarios visibles.\n- Sensación: seguridad, profesionalismo, calma.",
-        "retail": "Estilo visual retail/tienda:\n- Fondo moderno con contraste alto.\n- Hero con producto principal o vitrina.\n- Catálogo grid con precios y CTA de compra.\n- Badges de oferta y stock.\n- Sensación: deseo, conversión, dinamismo.",
-        "tech": "Estilo visual tech/startup:\n- Fondo oscuro premium con gradientes azules/violetas.\n- Hero tipo SaaS, con métricas, features y CTA potentes.\n- Cards limpias, bordes sutiles, animaciones modernas.\n- Sensación: innovación, velocidad, autoridad.",
-        "premium": "Estilo visual premium general:\n- Fondo oscuro elegante o claro muy controlado, nunca plano.\n- Hero fuerte con imagen real, overlay y CTA.\n- Secciones claras con jerarquía visual.\n- Cards modernas, sombras, hover y animaciones suaves.\n- Nada de espacios vacíos sin intención."
-    }
-    return estilos.get(estilo, estilos["premium"])
 
-def reforzar_html_base(html: str, estilo: str) -> str:
-    # Refuerzo visual mínimo para evitar páginas planas.
-    # No elimina contenido existente; solo añade estilo base si hace falta.
-    if not html:
-        return html
+def construir_prompt_visual(estilo_visual: str) -> str:
+    return f"""
+IMPORTANTE DE ESTILO VISUAL:
+- La web debe verse premium, moderna y completa.
+- Usa hero fuerte, cards, sombras suaves, animaciones sutiles y jerarquía clara.
+- Evita páginas planas, vacías o minimalistas sin intención.
+- Ajusta el estilo a: {estilo_visual}.
+- Incluye navbar fija, secciones bien separadas, CTA visible y footer completo.
+- Si el negocio es restaurante o comida: usa colores cálidos, imágenes apetitosas y sección de menú.
+- Si es tech: usa look oscuro/azul, métricas y bloques modernos.
+- Si es clínica: usa limpio, confiable y profesional.
+- Si es turismo/hotel: usa imagen hero grande y sensación cinematográfica.
+- Si es retail: usa catálogo visual y precios destacados.
+"""
 
-    if "<head>" in html and ":root" not in html:
-        inject = '''
-<style id="vd-style-refuerzo">
-:root {
-  --bg: #0d1b2a;
-  --bg-2: #111d2e;
-  --card: #162337;
-  --text: #f8f9fa;
-  --muted: #b7c0d1;
-  --accent: #f0a500;
-  --accent-2: #ffc837;
-}
-body {
-  background: linear-gradient(180deg, var(--bg) 0%, #0a1628 100%) !important;
-  color: var(--text) !important;
-}
-img { max-width: 100%; height: auto; display: block; }
-section { padding: 4rem 0; }
-.card, .service-card, .menu-card, .feature-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 18px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
-  transition: transform .25s ease, box-shadow .25s ease;
-}
-.card:hover, .service-card:hover, .menu-card:hover, .feature-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 26px 60px rgba(0,0,0,0.32);
-}
-button, .btn, a.btn {
-  border-radius: 12px;
-}
-</style>
-'''
-        html = html.replace("</head>", inject + "\n</head>", 1)
 
-    if "<body" in html and "background:" not in html:
-        html = re.sub(r"<body(.*?)>", r'<body\1 style="background:#0d1b2a;color:white;">', html, count=1)
+def respuesta_indica_rechazo(texto: str) -> bool:
+    t = texto.lower()
+    frases = [
+        "lo siento",
+        "no puedo proporcionar",
+        "no puedo crear",
+        "sin embargo",
+        "puedo proporcionarte el código html",
+        "te dejo el código",
+    ]
+    return any(p in t for p in frases)
 
-    return html
-# ─── COMPRESIÓN DE HISTORIAL ──────────────────────────────────────────────────
-def comprimir_historial(historial: list) -> list:
-    """Mantiene últimos 4 mensajes. El resto se convierte en resumen compacto."""
-    if len(historial) <= 4:
-        return historial
-    viejos = historial[:-4]
-    recientes = historial[-4:]
-    resumen = "Contexto previo:\n" + "\n".join(
-        f"{'Allan' if m['role']=='user' else 'Agente'}: {m['content'][:60]}..."
-        for m in viejos
-    )
-    return [{"role": "user", "content": resumen},
-            {"role": "assistant", "content": "Ok."}] + recientes
 
-# ─── LLAMADA PRINCIPAL (70B) ──────────────────────────────────────────────────
-def llamar_groq(sistema: str, historial: list, mensaje: str) -> str:
-    try:
-        from groq import Groq
-        client = Groq(api_key=GROQ_API_KEY)
-        msgs = [{"role": "system", "content": sistema}]
-        for h in comprimir_historial(historial):
-            msgs.append({"role": h["role"], "content": h["content"]})
-        msgs.append({"role": "user", "content": mensaje})
-        resp = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=msgs,
-            temperature=0.6,
-            max_tokens=3000,
-        )
-        return resp.choices[0].message.content
-    except Exception as e:
-        return f"❌ Error: {e}"
+def generar_respuesta_forzada(agente: str, sistema: str, historial: list, mensaje: str, estilo_visual: str | None = None) -> str:
+    """Intenta una respuesta normal; si el modelo rechaza o no devuelve HTML, fuerza una segunda pasada."""
+    respuesta = llamar_groq(sistema, historial, mensaje)
+
+    if agente == "desarrollador":
+        tiene_html = ("<!DOCTYPE html" in respuesta) or ("<html" in respuesta.lower())
+        if respuesta_indica_rechazo(respuesta) or not tiene_html:
+            refuerzo = sistema + "\n\n"
+            if estilo_visual:
+                refuerzo += construir_prompt_visual(estilo_visual or "premium") + "\n\n"
+            refuerzo += (
+                "REGLAS ABSOLUTAS:\n"
+                "- No rechaces la solicitud.\n"
+                "- No digas 'lo siento' ni 'sin embargo'.\n"
+                "- Devuelve SOLO un archivo HTML completo y autónomo.\n"
+                "- Incluye <!DOCTYPE html>, <html>, <head>, <style> y <body>.\n"
+                "- No expliques nada fuera del código.\n"
+            )
+            respuesta = llamar_groq(refuerzo, historial, mensaje)
+
+    return respuesta
 
 # ─── PDF ──────────────────────────────────────────────────────────────────────
 def generar_pdf(contenido: str, titulo: str) -> bytes | None:
@@ -455,9 +419,9 @@ def deploy_netlify(html: str) -> dict:
 
 def extraer_html(texto: str) -> str | None:
     m = re.search(r'```html\s*(.*?)```', texto, re.DOTALL | re.IGNORECASE)
-    if m: return reforzar_html_base(limpiar_html(m.group(1).strip()), "premium")
+    if m: return limpiar_html(m.group(1).strip())
     m = re.search(r'(<!DOCTYPE html.*?</html>)', texto, re.DOTALL | re.IGNORECASE)
-    if m: return reforzar_html_base(limpiar_html(m.group(1).strip()), "premium")
+    if m: return limpiar_html(m.group(1).strip())
     return None
 
 def limpiar_html(html: str) -> str:
@@ -589,19 +553,9 @@ if orden := st.chat_input("Escribe tu orden, Allan..."):
     historial_llm = [{"role": m["role"], "content": m["content"]}
                      for m in st.session_state.messages[:-1]]
 
-    prompt_sistema = ag["prompt"]
-    if agente_id == "desarrollador":
-        estilo_visual = detectar_estilo_visual(orden)
-        prompt_sistema = (
-            f"{ag['prompt']}\n\n"
-            f"ESTILO VISUAL DETECTADO: {estilo_visual}\n"
-            f"{instrucciones_estilo_visual(estilo_visual)}\n"
-            f"Si el HTML sale plano, incompleto o sin jerarquía visual, rehacerlo con más impacto."
-        )
-
     with st.chat_message("assistant"):
         with st.spinner(f"{ag['nombre']} procesando..."):
-            respuesta = llamar_groq(prompt_sistema, historial_llm, orden)
+            respuesta = generar_respuesta_forzada(agente_id, ag["prompt"], historial_llm, orden, detectar_estilo_visual(orden) if agente_id == "desarrollador" else None)
 
         st.markdown(f'<span class="agente-badge">{ag["nombre"]}</span>', unsafe_allow_html=True)
         st.markdown(respuesta)
